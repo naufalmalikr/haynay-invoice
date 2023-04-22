@@ -223,18 +223,18 @@ func (b *bot) handleError(step *step, action *action, user *user, err error) []s
 	}
 
 	log.Printf("Process error: %s\n", err.Error())
-	if action != nil {
-		outputs = append(outputs, fmt.Sprintf("Error: %s", err.Error()))
-		if err = action.Rollback(user); err == nil {
-			outputs = append(outputs, "Silahkan ulangi")
-			outputs = append(outputs, step.Output(user)...)
-		} else {
-			log.Printf("Rollback error: %s\n", err.Error())
-			outputs = append(outputs, fmt.Sprintf("Error: %s", errUnexpected.Error()))
-		}
+	outputs = append(outputs, fmt.Sprintf("Error: %s", err.Error()))
+	if action == nil {
+		return outputs
 	}
 
-	return outputs
+	if err = action.Rollback(user); err == nil {
+		outputs = append(outputs, "Silahkan ulangi")
+		return append(outputs, step.Output(user)...)
+	}
+
+	log.Printf("Rollback error: %s\n", err.Error())
+	return append(outputs, fmt.Sprintf("Error: %s", errUnexpected.Error()))
 }
 
 func (b *bot) Stop() {

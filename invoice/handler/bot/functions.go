@@ -209,7 +209,7 @@ func confirmationOutput(b *bot) func(user *user) []string {
 }
 
 func editAction(step *step, currentUser *user) *action {
-	if step == nil || step.EditedStep == nil {
+	if step == nil || step.editedStep == nil {
 		return &action{
 			NextStep: step.Name,
 			Process:  noProcess,
@@ -217,7 +217,7 @@ func editAction(step *step, currentUser *user) *action {
 		}
 	}
 
-	editedStep := step.EditedStep(currentUser)
+	editedStep := step.editedStep(currentUser)
 
 	// NOTE: this approach -using pointer to function type-
 	//       MAY NOT works for dynamic rollbackFunc like deleteInvoice

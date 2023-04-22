@@ -1,6 +1,8 @@
 package main
 
 import (
+	_ "github.com/joho/godotenv/autoload"
+
 	"haynay/haynay-invoice/invoice/handler/bot"
 	"haynay/haynay-invoice/invoice/repository"
 	"haynay/haynay-invoice/invoice/service"
@@ -9,15 +11,11 @@ import (
 	"os/signal"
 )
 
-const (
-	invoiceBotToken = "5607053437:AAGESIicXRslzHvkWFLqSr1RNAVJhypr4mo"
-)
-
 func main() {
 	log.Println("Starting bot...")
 	invoiceRepository := repository.New()
 	invoiceService := service.New(invoiceRepository)
-	invoiceBot := bot.New(invoiceBotToken, invoiceService)
+	invoiceBot := bot.New(os.Getenv("INVOICE_BOT_TOKEN"), invoiceService)
 	go invoiceBot.Start()
 	log.Println("Bot started")
 	waitKilled()

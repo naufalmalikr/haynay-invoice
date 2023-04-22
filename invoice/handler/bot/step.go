@@ -9,7 +9,8 @@ type step struct {
 	ImmediateAction *action
 	ChoicesAction   map[string]*action
 	FreeTextAction  *action
-	EditedStep      editedStepFunc
+
+	editedStep editedStepFunc
 }
 
 func newStep(name string) *step {
@@ -92,7 +93,7 @@ func (s *step) cancelable() *step {
 }
 
 func (s *step) setEditedStep(editedStep editedStepFunc) *step {
-	s.EditedStep = editedStep
+	s.editedStep = editedStep
 	return s.addChoice("edit", noProcess, noRollback, "ubah", "edit")
 }
 
