@@ -17,8 +17,12 @@ type bot struct {
 	steps   map[string]*step
 }
 
-func New(telegramToken string, service service.Service) Bot {
-	telegramBot, _ := tgbotapi.NewBotAPI(telegramToken)
+func New(telegramToken string, service service.Service) (Bot, error) {
+	telegramBot, err := tgbotapi.NewBotAPI(telegramToken)
+	if err != nil {
+		return nil, err
+	}
+
 	config := tgbotapi.NewUpdate(0)
 	config.Timeout = 30
 	bot := bot{
@@ -29,7 +33,7 @@ func New(telegramToken string, service service.Service) Bot {
 		steps:   map[string]*step{}}
 
 	bot.initializeSteps()
-	return &bot
+	return &bot, nil
 }
 
 func (b *bot) initializeSteps() {
@@ -137,14 +141,13 @@ func (b *bot) initializeSteps() {
 		simpleOutput("Invoice dibatalkan")
 
 	b.steps["edit"] = newStep("edit").
-		setDynamic(editAction).
+		asDynamic(editAction).
 		simpleOutput("Silahkan ubah data")
 }
 
 func (b *bot) Start(panicChan chan interface{}) {
 	defer func() {
 		if r := recover(); r != nil {
-			log.Println("Error when receiving messages:", r)
 			panicChan <- r
 		}
 	}()
@@ -204,7 +207,7 @@ func (b *bot) processAction(step *step, action *action, user *user, input string
 	for action != nil {
 		nextStepName := action.NextStep
 		nextStep := b.steps[nextStepName]
-		if nextStep.DynamicAction != nil {
+		if nextStep != nil && nextStep.DynamicAction != nil {
 			outputs = append(outputs, nextStep.Output(user)...)
 			action = nextStep.DynamicAction(step, user)
 			continue

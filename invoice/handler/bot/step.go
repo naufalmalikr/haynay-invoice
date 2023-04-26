@@ -21,7 +21,7 @@ func newStep(name string) *step {
 	}
 }
 
-func (s *step) setDynamic(dynamicAction dynamicActionFunc) *step {
+func (s *step) asDynamic(dynamicAction dynamicActionFunc) *step {
 	s.DynamicAction = dynamicAction
 	return s
 }

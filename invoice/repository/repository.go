@@ -4,54 +4,47 @@ import (
 	"encoding/json"
 	"haynay/haynay-invoice/invoice/entity"
 	"log"
-	"os"
-	"strconv"
+	"sync"
 	"time"
 )
 
 type repository struct {
-	invoiceIdSeqFile string
+	invoiceIDSeq int64
+	idMutex      sync.Mutex
 }
 
-func New() Repository {
-	return &repository{
-		invoiceIdSeqFile: "invoice_id_seq.txt",
-	}
+func New(invoiceIDSeq int64) Repository {
+	return &repository{invoiceIDSeq: invoiceIDSeq}
 }
 
 func (r *repository) Insert(invoice *entity.Invoice) (*entity.Invoice, error) {
-	id, err := r.nextID()
+	r.idMutex.Lock()
+	defer r.idMutex.Unlock()
+
+	r.invoiceIDSeq++
+	invoice.ID = r.invoiceIDSeq
+	invoice.CreatedAt = time.Now()
+	invoice.UpdatedAt = invoice.CreatedAt
+	invoiceJson, err := json.Marshal(invoice)
 	if err != nil {
-		return nil, err
+		r.invoiceIDSeq--
+		return invoice, err
 	}
 
-	invoice.ID = id
-	invoice.UpdatedAt = time.Now()
-	invoiceJson, _ := json.Marshal(invoice)
 	log.Printf("Invoice inserted: %s\n", string(invoiceJson))
 	return invoice, nil
 }
 
-func (r *repository) nextID() (int64, error) {
-	lastID, err := os.ReadFile(r.invoiceIdSeqFile)
-	if err != nil {
-		return 0, err
-	}
-
-	id, _ := strconv.ParseInt(string(lastID), 10, 64)
-	id++
-	file, err := os.Create(r.invoiceIdSeqFile)
-	if err != nil {
-		return id, err
-	}
-	defer file.Close()
-
-	_, err = file.WriteString(strconv.FormatInt(id, 10))
-	return id, err
-}
-
 func (r *repository) Delete(invoice *entity.Invoice) (*entity.Invoice, error) {
-	invoiceJson, _ := json.Marshal(invoice)
+	invoiceJson, err := json.Marshal(invoice)
+	if err != nil {
+		return invoice, err
+	}
+
 	log.Printf("Invoice deleted: %s\n", string(invoiceJson))
 	return invoice, nil
+}
+
+func (r *repository) Shutdown() {
+	log.Printf("Last invoice ID: %d\n", r.invoiceIDSeq)
 }
