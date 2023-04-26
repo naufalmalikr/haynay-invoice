@@ -16,16 +16,16 @@ func main() {
 	invoiceRepository := repository.New()
 	invoiceService := service.New(invoiceRepository)
 	invoiceBot := bot.New(os.Getenv("INVOICE_BOT_TOKEN"), invoiceService)
-	go invoiceBot.Start()
-	log.Println("Bot started")
-	waitKilled()
-	log.Println("Stopping bot...")
-	invoiceBot.Stop()
-	log.Println("Bot stopped")
-}
-
-func waitKilled() {
+	panicChan := make(chan interface{}, 1)
+	go invoiceBot.Start(panicChan)
 	sigchan := make(chan os.Signal, 1)
 	signal.Notify(sigchan, os.Interrupt)
-	<-sigchan
+	select {
+	case <-sigchan:
+		log.Println("Stopping bot...")
+		invoiceBot.Stop()
+		log.Println("Bot stopped")
+	case r := <-panicChan:
+		log.Fatalln("Can't start bot:", r)
+	}
 }

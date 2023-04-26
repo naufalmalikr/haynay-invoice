@@ -1,14 +1,15 @@
 package bot
 
+type outputFunc func(user *user) []string
 type dynamicActionFunc func(step *step, user *user) *action
 type editedStepFunc func(user *user) *step
 type step struct {
 	Name            string
-	Output          func(user *user) []string
 	DynamicAction   dynamicActionFunc
 	ImmediateAction *action
 	ChoicesAction   map[string]*action
 	FreeTextAction  *action
+	Output          outputFunc
 
 	editedStep editedStepFunc
 }
@@ -58,18 +59,7 @@ func (s *step) rejectFreeText() *step {
 	return s.allowFreeTextTo("", mustErrProcess, noRollback)
 }
 
-func (s *step) setOutput(output func(user *user) []string) *step {
-	s.Output = output
-	return s
-}
-
-func (s *step) simpleOutput(message string) *step {
-	return s.setOutput(func(user *user) []string {
-		return []string{message}
-	})
-}
-
-func (s *step) addChoice(
+func (s *step) addChoiceTo(
 	nextStep string,
 	process processFunc,
 	rollback rollbackFunc,
@@ -89,16 +79,27 @@ func (s *step) addChoice(
 }
 
 func (s *step) cancelable() *step {
-	return s.addChoice("cancel", noProcess, noRollback, "batal", "cancel")
+	return s.addChoiceTo("cancel", noProcess, noRollback, "batal", "cancel")
 }
 
 func (s *step) setEditedStep(editedStep editedStepFunc) *step {
 	s.editedStep = editedStep
-	return s.addChoice("edit", noProcess, noRollback, "ubah", "edit")
+	return s.addChoiceTo("edit", noProcess, noRollback, "ubah", "edit")
 }
 
 func (s *step) editableFor(editedStep *step) *step {
 	return s.setEditedStep(func(user *user) *step {
 		return editedStep
+	})
+}
+
+func (s *step) setOutput(output outputFunc) *step {
+	s.Output = output
+	return s
+}
+
+func (s *step) simpleOutput(message string) *step {
+	return s.setOutput(func(user *user) []string {
+		return []string{message}
 	})
 }

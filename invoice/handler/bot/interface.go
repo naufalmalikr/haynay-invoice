@@ -1,6 +1,6 @@
 package bot
 
 type Bot interface {
-	Start()
+	Start(panicChan chan interface{})
 	Stop()
 }

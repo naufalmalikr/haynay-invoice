@@ -23,7 +23,7 @@ func initializeInvoice(b *bot) processFunc {
 	}
 }
 
-func printInvoice(b *bot) func(user *user) []string {
+func printInvoice(b *bot) outputFunc {
 	return func(user *user) []string {
 		return []string{
 			"Berikut invoicenya, copy-paste ke WA",
@@ -202,7 +202,7 @@ func courierPriceOutput(user *user) []string {
 	return []string{message}
 }
 
-func confirmationOutput(b *bot) func(user *user) []string {
+func confirmationOutput(b *bot) outputFunc {
 	return func(user *user) []string {
 		return []string{fmt.Sprintf("Konfirmasi:\n%s\nKetik \"OK\" untuk menyimpan invoice", b.service.ConfirmationMessage(*user.Invoice))}
 	}
@@ -217,10 +217,9 @@ func editAction(step *step, currentUser *user) *action {
 		}
 	}
 
-	editedStep := step.editedStep(currentUser)
-
 	// NOTE: this approach -using pointer to function type-
 	//       MAY NOT works for dynamic rollbackFunc like deleteInvoice
+	editedStep := step.editedStep(currentUser)
 	rollbacksMap := map[string]map[*rollbackFunc]bool{}
 	if editedStep.FreeTextAction != nil {
 		rollbacksMap[editedStep.FreeTextAction.NextStep] = map[*rollbackFunc]bool{
@@ -229,12 +228,12 @@ func editAction(step *step, currentUser *user) *action {
 	}
 
 	for _, action := range editedStep.ChoicesAction {
-		if _, found := rollbacksMap[action.NextStep]; !found {
-			rollbacksMap[action.NextStep] = map[*rollbackFunc]bool{}
-		}
-
-		if _, found := rollbacksMap[action.NextStep][&action.Rollback]; !found {
+		if _, found := rollbacksMap[action.NextStep]; found {
 			rollbacksMap[action.NextStep][&action.Rollback] = true
+		} else {
+			rollbacksMap[action.NextStep] = map[*rollbackFunc]bool{
+				&action.Rollback: true,
+			}
 		}
 	}
 

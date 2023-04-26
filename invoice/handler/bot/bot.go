@@ -34,7 +34,7 @@ func New(telegramToken string, service service.Service) Bot {
 
 func (b *bot) initializeSteps() {
 	b.steps["start"] = newStep("start").
-		addChoice("buyer", initializeInvoice(b), noRollback, "invoice", "1").
+		addChoiceTo("buyer", initializeInvoice(b), noRollback, "invoice", "1").
 		allowFreeTextTo("start", noProcess, noRollback).
 		simpleOutput("Assalaamu'alaikum, silahkan pilih:\n1. Ketik \"Invoice\" untuk mulai bikin invoice")
 
@@ -74,8 +74,8 @@ func (b *bot) initializeSteps() {
 		editableFor(b.steps["order_quantity"])
 
 	b.steps["order_more"] = newStep("order_more").
-		addChoice("courier_name", noProcess, noRollback, "ok", "oke", "1").
-		addChoice("order_item", initializeOrder, removeLastOrder, "tambah", "add", "2").
+		addChoiceTo("courier_name", noProcess, noRollback, "ok", "oke", "1").
+		addChoiceTo("order_item", initializeOrder, removeLastOrder, "tambah", "add", "2").
 		rejectFreeText().
 		setOutput(orderMoreOutput).
 		cancelable().
@@ -88,9 +88,9 @@ func (b *bot) initializeSteps() {
 		editableFor(b.steps["order_more"])
 
 	b.steps["courier_info"] = newStep("courier_info").
-		addChoice("courier_price", noProcess, noRollback, "ok", "oke", "1").
-		addChoice("courier_price", setCOD, rollbackCourierInfo, "cod", "2").
-		addChoice("courier_price", setFreeShippingFee, rollbackCourierInfo, "gratis", "free", "3").
+		addChoiceTo("courier_price", noProcess, noRollback, "ok", "oke", "1").
+		addChoiceTo("courier_price", setCOD, rollbackCourierInfo, "cod", "2").
+		addChoiceTo("courier_price", setFreeShippingFee, rollbackCourierInfo, "gratis", "free", "3").
 		rejectFreeText().
 		simpleOutput("Pilih salah satu:\n1. Ketik \"OK\" untuk lanjut\n2. Ketik \"COD\" jika pembeli melakukan COD\n3. Ketik \"Gratis\" jika gratis ongkir").
 		cancelable().
@@ -103,8 +103,8 @@ func (b *bot) initializeSteps() {
 		editableFor(b.steps["courier_info"])
 
 	b.steps["stock"] = newStep("stock").
-		addChoice("confirmation", noProcess, rollbackPO, "ready", "1").
-		addChoice("preorder_duration", setPO, rollbackPO, "po", "2").
+		addChoiceTo("confirmation", noProcess, rollbackPO, "ready", "1").
+		addChoiceTo("preorder_duration", setPO, rollbackPO, "po", "2").
 		rejectFreeText().
 		simpleOutput("Pilih salah satu:\n1. Ketik \"Ready\" jika produk ready stock\n2. Ketik \"PO\" jika produk preorder").
 		cancelable().
@@ -117,8 +117,8 @@ func (b *bot) initializeSteps() {
 		editableFor(b.steps["stock"])
 
 	b.steps["confirmation"] = newStep("confirmation").
-		addChoice("save", noProcess, noRollback, "ok", "oke").
-		addChoice("print", noProcess, noRollback, "print", "view").
+		addChoiceTo("save", noProcess, noRollback, "ok", "oke").
+		addChoiceTo("print", noProcess, noRollback, "print", "view").
 		rejectFreeText().
 		setOutput(confirmationOutput(b)).
 		cancelable().
@@ -141,7 +141,14 @@ func (b *bot) initializeSteps() {
 		simpleOutput("Silahkan ubah data")
 }
 
-func (b *bot) Start() {
+func (b *bot) Start(panicChan chan interface{}) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Println("Error when receiving messages:", r)
+			panicChan <- r
+		}
+	}()
+
 	updates := b.bot.GetUpdatesChan(b.config)
 	log.Println("Ready to receive messages")
 	for update := range updates {
